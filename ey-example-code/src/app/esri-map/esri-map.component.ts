@@ -75,6 +75,30 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       console.log(this.cLogger.view);
     });
 
+    // listen to click evbent
+    this.cLogger.view.on('click', (event: any) => {
+      // holder for selected layer that hit when we click
+      let selectedLayer: any = null;
+
+      // check for hit click event
+      this.cLogger.view.hitTest(event).then((response: any) => {
+        // check if click hit the layer that we add the cluster
+        response.results.forEach((result: any) => {
+          if (result && this.cLogger && this.cLogger.LocalFL) {
+            if (result.layer.id === this.cLogger.LocalFL.id) {
+              //assign the layer
+              selectedLayer = result;
+            }
+          }
+        });
+        // if layer is found
+        if (selectedLayer) {
+          // send to function to check whether need to zoom in or not
+          this.cLogger.zoomTo(selectedLayer.graphic);
+        }
+      });
+    });
+
     this.cLogger.view.popup.on('trigger-action', (event: any) => {
       this.cLogger.clearViewGraphics();
 

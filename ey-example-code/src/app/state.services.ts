@@ -13,6 +13,7 @@ import * as symbolUtils from '@arcgis/core/symbols/support/symbolUtils';
 import Collection from '@arcgis/core/core/Collection';
 import FeatureReductionCluster from '@arcgis/core/layers/support/FeatureReductionCluster';
 import * as reactiveUtils from '@arcgis/core/core/reactiveUtils';
+import Extent from '@arcgis/core/geometry/Extent';
 export class Logger {
   webmap: any;
   view: any;
@@ -326,8 +327,65 @@ export class Logger {
     // );
   }
 
+  // zoom to cluster extent
+  async zoomTo(graphic: Graphic) {
+    // query on the view side and not query from rest api
+    this.LocalFLLayerView = await this.view.whenLayerView(this.LocalFL);
+    // check if the layer and graphic is not null
+    this.processParams(graphic, this.LocalFLLayerView);
+
+    // create query object from layer view
+    const query = this.LocalFLLayerView.createQuery();
+
+    // get id of cluster point
+    query.aggregateIds = [graphic.getObjectId()];
+
+    // query the layer view
+    const { features } = await this.LocalFLLayerView.queryFeatures(query);
+
+    // extent holder
+    let extent: any = null;
+
+    // flag indicate if all the cluster point has same latitude or longitude
+    let clusterDifferentLatitudeLongitude = 0;
+
+    // get the first latitude or longitude
+    const latitude = features[0].geometry.latitude;
+    const longitude = features[0].geometry.longitude;
+
+    // interate results from query
+    features.forEach((feature: any, index: number) => {
+      // check if all point has same latitude or longitude
+      if (
+        index > 0 &&
+        latitude === feature.geometry.latitude &&
+        longitude === feature.geometry.longitude
+      ) {
+        clusterDifferentLatitudeLongitude++;
+      }
+      // check if geometry is point then we need to combine the extent
+      if (feature.geometry.type === 'point') {
+        let geometryExtent = new Extent({
+          xmin: feature.geometry.x,
+          xmax: feature.geometry.x,
+          ymin: feature.geometry.y,
+          ymax: feature.geometry.y,
+          spatialReference: feature.geometry.spatialReference,
+        });
+        // combine the extend of each point
+        extent = extent ? extent.union(geometryExtent) : geometryExtent;
+      }
+    });
+    // if has same latitude or longitude showing alert
+    if (clusterDifferentLatitudeLongitude === features.length) {
+      alert('Same coordinate');
+    } else {
+      // zoom to extent
+      this.view.goTo(extent);
+    }
+  }
+
   async showFeature(graphic: Graphic) {
-    console.log('hahahaha');
     if (this.LocalFLGraphics && this.view) {
       this.view.graphics.removeMany(this.LocalFLGraphics);
       this.LocalFLGraphics = null;
@@ -338,7 +396,6 @@ export class Logger {
     const query = this.LocalFLLayerView.createQuery();
     query.aggregateIds = [graphic.getObjectId()];
     const { features } = await this.LocalFLLayerView.queryFeatures(query);
-
     features.forEach(async (feature: Graphic) => {
       const symbol = await symbolUtils.getDisplayedSymbol(feature);
       feature.symbol = symbol;
