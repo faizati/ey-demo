@@ -93,8 +93,10 @@ export class EsriMapComponent implements OnInit, OnDestroy {
         });
         // if layer is found
         if (selectedLayer) {
-          // send to function to check whether need to zoom in or not
-          this.cLogger.zoomTo(selectedLayer.graphic);
+          // check if point is cluster then we allow trigger checking for zoom
+          if (selectedLayer.graphic && selectedLayer.graphic.isAggregate)
+            // send to function to check whether need to zoom in or not
+            this.cLogger.zoomTo(selectedLayer.graphic);
         }
       });
     });
