@@ -14,6 +14,9 @@ import Collection from '@arcgis/core/core/Collection';
 import FeatureReductionCluster from '@arcgis/core/layers/support/FeatureReductionCluster';
 import * as reactiveUtils from '@arcgis/core/core/reactiveUtils';
 import Extent from '@arcgis/core/geometry/Extent';
+import * as geometryEngine from '@arcgis/core/geometry/geometryEngine';
+// import Graphic from '@arcgis/core/Graphic';
+
 export class Logger {
   webmap: any;
   view: any;
@@ -382,6 +385,49 @@ export class Logger {
       // zoom to extent
       this.view.goTo(extent);
     }
+  }
+
+  async nearby(graphic: Graphic) {
+    if (this.LocalFLGraphics && this.view) {
+      this.view.graphics.removeMany(this.LocalFLGraphics);
+      this.LocalFLGraphics = null;
+    }
+    const ptBuff: any = geometryEngine.buffer(
+      graphic.geometry,
+      10,
+      'kilometers'
+    );
+    let polygonSymbol = {
+      type: 'simple-fill', // autocasts as new SimpleFillSymbol()
+      color: [0, 255, 255, 0.2],
+      style: 'solid',
+      outline: {
+        // autocasts as new SimpleLineSymbol()
+        color: 'white',
+        width: 1,
+      },
+    };
+    let polygon = new Graphic({
+      geometry: ptBuff,
+      symbol: polygonSymbol,
+      attributes: {},
+    });
+
+    console.log(polygon, 'point buff');
+    this.LocalFLLayerView = await this.view.whenLayerView(this.LocalFL); // this.webmap.add(this.LocalFL);
+    // this.processParams(graphic, this.LocalFLLayerView);
+
+    const query = this.LocalFLLayerView.createQuery();
+    query.aggregateIds = [graphic.getObjectId()];
+    const { features } = await this.LocalFLLayerView.queryFeatures(query);
+    features.forEach(async (feature: Graphic) => {
+      const symbol = await symbolUtils.getDisplayedSymbol(feature);
+      feature.symbol = symbol;
+      this.view.graphics.add(feature);
+    });
+    this.view.graphics.add(polygon);
+    this.LocalFLGraphics = features;
+    this.view.goTo(polygon.geometry.extent);
   }
 
   async showFeature(graphic: Graphic) {

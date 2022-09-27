@@ -75,7 +75,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       console.log(this.cLogger.view);
     });
 
-    // listen to click evbent
+    // listen to click event
     this.cLogger.view.on('click', (event: any) => {
       // holder for selected layer that hit when we click
       let selectedLayer: any = null;
@@ -85,7 +85,12 @@ export class EsriMapComponent implements OnInit, OnDestroy {
         // check if click hit the layer that we add the cluster
         response.results.forEach((result: any) => {
           if (result && this.cLogger && this.cLogger.LocalFL) {
-            if (result.layer.id === this.cLogger.LocalFL.id) {
+            if (
+              result &&
+              result.layer &&
+              result.layer.id &&
+              result.layer.id === this.cLogger.LocalFL.id
+            ) {
               //assign the layer
               selectedLayer = result;
             }
@@ -97,6 +102,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
           if (selectedLayer.graphic && selectedLayer.graphic.isAggregate)
             // send to function to check whether need to zoom in or not
             this.cLogger.zoomTo(selectedLayer.graphic);
+          else this.cLogger.nearby(selectedLayer.graphic);
         }
       });
     });
