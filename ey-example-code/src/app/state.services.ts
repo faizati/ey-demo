@@ -354,10 +354,9 @@ export class Logger {
     const longitude = features[0].geometry.longitude;
 
     // interate results from query
-    features.forEach((feature: any, index: number) => {
+    features.forEach((feature: any) => {
       // check if all point has same latitude or longitude
       if (
-        index > 0 &&
         latitude === feature.geometry.latitude &&
         longitude === feature.geometry.longitude
       ) {
